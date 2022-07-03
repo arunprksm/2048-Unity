@@ -3,25 +3,30 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour
 {
     [SerializeField] private int width = 4;
     [SerializeField] private int height = 4;
+
     [SerializeField] private NodeScript nodePrefab;
     [SerializeField] private BlockScripts blockPrefab;
+
     [SerializeField] private SpriteRenderer boardPrefab;
-    [SerializeField] private List<BlockType> types;
+    [SerializeField] private List<BlockType> BlockTypes;
 
     private List<NodeScript> nodes;
     private List<BlockScripts> blocks;
+    private int round;
 
     private GameState state;
 
-    private BlockType getBlockTypeByValue(int value) => types.First(t => t.value == value);
+    private BlockType GetBlockTypeByValue(int value) => BlockTypes.First(t => t.value == value);
     private void Start()
     {
-        GenerateGrid();
+        ChangeState(GameState.GenerateLevel);
+
     }
 
     private void ChangeState(GameState newState)
@@ -29,9 +34,9 @@ public class GameManager : MonoBehaviour
         state = newState;
         switch (state)
         {
-            case GameState.GenerateLevel:
+            case GameState.GenerateLevel: GenerateGrid();
                 break;
-            case GameState.SpawnBlocks:
+            case GameState.SpawnBlocks:   SpawnBlocks(round++ == 0 ? 2 : 1);
                 break;
             case GameState.WaitingInput:
                 break;
@@ -45,6 +50,7 @@ public class GameManager : MonoBehaviour
     }
     private void GenerateGrid()
     {
+        round = 0;
         nodes = new List<NodeScript>();
         blocks = new List<BlockScripts>();
         for (int i = 0; i < width; i++)
@@ -62,18 +68,17 @@ public class GameManager : MonoBehaviour
 
         Camera.main.transform.position = new Vector3(center.x, center.y, -10);
 
-        SpawnBlocks(2);
+        ChangeState(GameState.SpawnBlocks);
     }
 
     void SpawnBlocks(int amount)
     {
-        var freeNodes = nodes.Where(n => n.occupiedBlock == null).OrderBy(b => UnityEngine.Random.value).ToList();
+        var freeNodes = nodes.Where(n => n.occupiedBlock == null).OrderBy(b => Random.value).ToList();
         foreach (var node in freeNodes.Take(amount))
         {
-            var block = Instantiate(blockPrefab, node.Pos, Quaternion.identity);
-            block.Intialize(getBlockTypeByValue(2));
+            BlockScripts block = Instantiate(blockPrefab, node.Pos, Quaternion.identity);
+            block.Intialize(GetBlockTypeByValue(Random.value > 0.8f ? 4 : 2));
         }
-
         if (freeNodes.Count() == 1)
         {
             return;
